@@ -68,6 +68,13 @@ if __name__ == "__main__":
     for l in new_classes.values():
         print(len(l))
 
+
+    out_fname = "imagenet-10/superclass_hyponyms.json"
+    with open(out_fname, "w") as f:
+        json.dump(new_classes, f, indent=4)
+    out_fname = "imagenet-10/sub_to_super_map.json"
+    with open(out_fname, "w") as f:
+        json.dump(new_label_map, f, indent=4)
     #print(labels["n02123785"])
     
 
