@@ -3,13 +3,14 @@ import os
 
 import torch
 from torch.utils.data import dataset, Dataset, Subset
-from torchvision import datasets
+from torchvision import datasets, transforms
 
-dataset_location = "../../benchmark_image_datasets/imagenet-1k/train/"
+import random
+
 
 class Imagenet10(Dataset) :
-    def __init__(self, imagenet1k_location, sub_to_super_map, class_size=None):
-        self.base_ds = datasets.ImageFolder(imagenet1k_location)
+    def __init__(self, imagenet1k_location, sub_to_super_map, class_size=None, transform=None):
+        self.base_ds = datasets.ImageFolder(imagenet1k_location, transform=transform)
         self.sub_to_super_map = sub_to_super_map
         self.subsets = []
         self.supersets = []
@@ -21,8 +22,9 @@ class Imagenet10(Dataset) :
             if super not in self.supersets :
                 self.supersets.append(super)
 
+
     
-        full_ds = datasets.ImageFolder(dataset_location)
+        full_ds = datasets.ImageFolder(imagenet1k_location, transform=transform)
         self.full_ds = full_ds
         self.idx_to_class = {v: k for k, v in self.full_ds.class_to_idx.items()}
 
@@ -47,9 +49,12 @@ class Imagenet10(Dataset) :
         self.sub_ds = Subset(self.base_ds, subset_indices)
 
         if class_size != None :
+            enum = [(i, y) for i, y in enumerate(subset_indices_labels)]
+            random.shuffle(enum)
             class_counts = {}
             new_subset_indices = []
-            for i, y in enumerate(subset_indices_labels):
+            #for i, y in enumerate(subset_indices_labels):
+            for i, y in enum:
                 y = self.sub_to_super_map[self.idx_to_class[y]]
                 if y not in class_counts:
                     class_counts[y] = 1
@@ -71,7 +76,12 @@ class Imagenet10(Dataset) :
 
 
     def __getitem__(self, index):
-        return self.sub_ds.__getitem__(index)
+        item, subclass_idx = self.sub_ds.__getitem__(index)
+        subclass = self.idx_to_class[subclass_idx]
+        superclass = self.sub_to_super_map[subclass]
+        label = self.supersets.index(superclass)
+
+        return item, label
 
     
 
@@ -79,6 +89,7 @@ DS_LOC = "../../benchmark_image_datasets/imagenet-1k/train/"
 
 
 if __name__ == '__main__':
+    DS_LOC = "../../benchmark_image_datasets/imagenet-1k/train/"
     fname = "imagenet-10/sub_to_super_map.json"
     with open(fname, "r") as f: sub_to_super = json.load(f)
 
